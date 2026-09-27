@@ -70,7 +70,7 @@ with st.sidebar:
     
     # Secrets에 저장된 API 키와 비밀번호 불러오기
     real_api_key = st.secrets.get("YOUTUBE_API_KEY", "")
-correct_password = st.secrets.get("MY_PASSWORD", "")
+    correct_password = st.secrets.get("MY_PASSWORD", "")
     
     # 비밀번호 입력창
     user_input_pw = st.text_input("접속 비밀번호 입력", type="password", help="서비스 이용을 위한 비밀번호를 입력하세요.")

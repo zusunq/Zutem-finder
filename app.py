@@ -66,8 +66,25 @@ st.caption("유튜브 알고리즘을 분석하여 빠른 속도로 성장하는
 
 # 사이드바 설정
 with st.sidebar:
-    st.header("🔑 API 설정")
-    api_key = st.text_input("YouTube Data API Key", type="password", help="구글 클라우드 콘솔에서 발급받은 API 키를 입력하세요.")
+    st.header("🔑 접속 인증")
+    
+    # Secrets에 저장된 API 키와 비밀번호 불러오기
+    real_api_key = st.secrets.get("AIzaSyAQ-_K83ieQ1ku0KlWqf0Rcvu-Xo0AyiRQ", "")
+    correct_password = st.secrets.get("zutem1004", "")
+    
+    # 비밀번호 입력창
+    user_input_pw = st.text_input("접속 비밀번호 입력", type="password", help="서비스 이용을 위한 비밀번호를 입력하세요.")
+    
+    # 비밀번호 일치 여부 검증
+    if user_input_pw == correct_password and correct_password != "":
+        api_key = real_api_key
+        st.success("인증 완료! 서비스를 이용할 수 있습니다.")
+    else:
+        api_key = ""
+        if user_input_pw:
+            st.error("비밀번호가 올바르지 않습니다.")
+        else:
+            st.info("비밀번호를 입력해야 서비스가 활성화됩니다.")
     st.divider()
     st.markdown("💡 **Zutem Finder 안내**")
     st.caption("키워드를 검색하고 조건별 필터를 지정하면 AMS 지수(알고리즘 상승 지수)가 계산됩니다.")

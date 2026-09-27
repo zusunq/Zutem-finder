@@ -61,7 +61,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("⚡ Zutem Finder | 떡상 쇼츠 발굴기")
+st.title("⚡ Zutem Finder | 조회수 폭발 쇼츠 발굴기")
 st.caption("유튜브 알고리즘을 분석하여 빠른 속도로 성장하는 떡상 쇼츠를 검색·비교합니다.")
 
 # 사이드바 설정

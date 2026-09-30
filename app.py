@@ -6,9 +6,9 @@ import pandas as pd
 from googleapiclient.discovery import build
 
 # 페이지 기본 설정
-st.set_page_config(page_title="Golden Finder | 쇼츠 & 채널 발굴기", page_icon="👑", layout="wide")
+st.set_page_config(page_title="ZuTem Finder | 쇼츠 & 채널 발굴기", page_icon="👑", layout="wide")
 
-# Golden Finder 스타일 커스텀 CSS
+# ZuTem Finder 스타일 커스텀 CSS
 st.markdown("""
 <style>
     /* 전체 배경 */
@@ -122,7 +122,7 @@ with st.sidebar:
     st.markdown("""
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
             <div style="background: linear-gradient(135deg, #ff9f43, #ee5253); padding: 8px 12px; border-radius: 10px; color: white; font-weight: bold;">👑</div>
-            <span style="font-size: 1.3rem; font-weight: 800; color: #2d3436;">Golden Finder</span>
+            <span style="font-size: 1.3rem; font-weight: 800; color: #2d3436;">ZuTem Finder</span>
         </div>
     """, unsafe_allow_html=True)
     

@@ -318,15 +318,18 @@ elif menu == "🏆 황금 채널 발굴기":
     
     st.markdown("##### 🎯 관심 주제")
     topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
-    selected_topic = st.radio("관심 주제", topics, index=0, horizontal=True, label_visibility="collapsed")
+    selected_topic = st.radio("관심 주제", topics, index=0, horizontal=True, label_visibility="collapsed", key="gc_topic")
     
-    col1, col2 = st.columns(2)
-    with col1:
+    col_g1, col_g2, col_g3 = st.columns([1.5, 2, 1.5])
+    with col_g1:
         st.markdown("##### 🎬 영상 타입")
-        video_type = st.radio("영상 타입", ["전체", "쇼츠", "롱폼"], index=1, horizontal=True, label_visibility="collapsed")
-    with col2:
+        video_type = st.radio("영상 타입", ["전체", "쇼츠", "롱폼"], index=1, horizontal=True, label_visibility="collapsed", key="gc_vtype")
+    with col_g2:
         st.markdown("##### 👥 구독자 구간")
-        sub_range = st.radio("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], index=0, horizontal=True, label_visibility="collapsed")
+        sub_range = st.radio("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sub")
+    with col_g3:
+        st.markdown("##### 📊 정렬 기준")
+        sort_gc = st.radio("정렬 기준", ["조회수 높은 순", "구독자 많은 순"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sort")
     
     if st.button("🏆 황금 채널 탐색"):
         if not api_key:
@@ -336,49 +339,96 @@ elif menu == "🏆 황금 채널 발굴기":
                 youtube = build("youtube", "v3", developerKey=api_key)
                 with st.spinner("🏆 황금 채널 및 인기 영상 데이터를 불러오는 중..."):
                     q_term = selected_topic if selected_topic != "전체" else "뷰티"
+                    
+                    v_duration = "any"
+                    if video_type == "쇼츠":
+                        v_duration = "short"
+                    elif video_type == "롱폼":
+                        v_duration = "medium"
+
                     search_res = youtube.search().list(
                         q=q_term,
                         part="id,snippet",
-                        maxResults=16,
+                        maxResults=20,
                         type="video",
-                        videoDuration="short" if video_type == "쇼츠" else "any"
+                        videoDuration=v_duration
                     ).execute()
 
                     v_ids = [item["id"]["videoId"] for item in search_res.get("items", [])]
                     if v_ids:
                         videos_res = youtube.videos().list(part="snippet,statistics", id=",".join(v_ids)).execute()
+                        
+                        channel_ids = list(set([item["snippet"]["channelId"] for item in videos_res.get("items", [])]))
+                        channels_res = youtube.channels().list(part="statistics", id=",".join(channel_ids)).execute()
 
-                        st.markdown(f"### 🏆 **[{q_term}]** 분야 발굴 결과")
+                        channel_subs_map = {
+                            ch["id"]: (0 if ch.get("statistics", {}).get("hiddenSubscriberCount", False) 
+                                       else int(ch.get("statistics", {}).get("subscriberCount", 0)))
+                            for ch in channels_res.get("items", [])
+                        }
 
-                        cols_per_row = 4
-                        for i in range(0, len(videos_res.get("items", [])), cols_per_row):
-                            cols = st.columns(cols_per_row)
-                            for j in range(cols_per_row):
-                                idx = i + j
-                                if idx < len(videos_res.get("items", [])):
-                                    item = videos_res["items"][idx]
-                                    snippet = item["snippet"]
-                                    stats = item.get("statistics", {})
+                        # 데이터 구조화
+                        items_list = []
+                        for item in videos_res.get("items", []):
+                            snippet = item["snippet"]
+                            stats = item.get("statistics", {})
+                            v_views = int(stats.get("viewCount", 0))
+                            ch_subs = channel_subs_map.get(snippet["channelId"], 0)
 
-                                    views = int(stats.get("viewCount", 0))
-                                    view_text = f"{views/10000:.1f}만 회" if views >= 10000 else f"{views:,}회"
+                            # 구독자 구간 필터링
+                            if sub_range == "0~1만 명 (급성장)" and ch_subs > 10000:
+                                continue
+                            elif sub_range == "1만~5만 명" and not (10000 <= ch_subs <= 50000):
+                                continue
+                            elif sub_range == "5만~10만 명" and not (50000 <= ch_subs <= 100000):
+                                continue
 
-                                    with cols[j]:
-                                        st.markdown(f"""
-                                        <div class="dark-card">
-                                            <a href="https://www.youtube.com/shorts/{item['id']}" target="_blank">
-                                                <img src="{snippet['thumbnails']['high']['url']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
-                                            </a>
-                                            <div class="dark-card-body">
-                                                <div class="dark-card-title">{snippet['title']}</div>
-                                                <div class="dark-card-sub">📺 {snippet['channelTitle']}</div>
-                                                <div class="dark-card-stats">
-                                                    <span>👁️조회수 {view_text}</span>
-                                                    <span class="badge-ams-dark">AMS 99.9</span>
+                            items_list.append({
+                                "id": item["id"],
+                                "title": snippet["title"],
+                                "channelTitle": snippet["channelTitle"],
+                                "views": v_views,
+                                "subs": ch_subs,
+                                "thumbnail": snippet["thumbnails"]["high"]["url"]
+                            })
+
+                        # 정렬 적용
+                        if sort_gc == "조회수 높은 순":
+                            items_list = sorted(items_list, key=lambda x: x["views"], reverse=True)
+                        elif sort_gc == "구독자 많은 순":
+                            items_list = sorted(items_list, key=lambda x: x["subs"], reverse=True)
+
+                        if not items_list:
+                            st.warning("선택한 조건에 일치하는 결과가 없습니다.")
+                        else:
+                            st.markdown(f"### 🏆 **[{q_term}]** 분야 발굴 결과 (**{len(items_list)}**개)")
+
+                            cols_per_row = 4
+                            for i in range(0, len(items_list), cols_per_row):
+                                cols = st.columns(cols_per_row)
+                                for j in range(cols_per_row):
+                                    idx = i + j
+                                    if idx < len(items_list):
+                                        card = items_list[idx]
+                                        view_text = f"{card['views']/10000:.1f}만 회" if card['views'] >= 10000 else f"{card['views']:,}회"
+                                        sub_text = f"{card['subs']/10000:.1f}만 명" if card['subs'] >= 10000 else f"{card['subs']:,}명"
+
+                                        with cols[j]:
+                                            st.markdown(f"""
+                                            <div class="dark-card">
+                                                <a href="https://www.youtube.com/watch?v={card['id']}" target="_blank">
+                                                    <img src="{card['thumbnail']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
+                                                </a>
+                                                <div class="dark-card-body">
+                                                    <div class="dark-card-title">{card['title']}</div>
+                                                    <div class="dark-card-sub">📺 {card['channelTitle']}</div>
+                                                    <div class="dark-card-stats">
+                                                        <span>👤 구독자 {sub_text}</span>
+                                                        <span>👁️ 조회수 {view_text}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        """, unsafe_allow_html=True)
+                                            """, unsafe_allow_html=True)
                     else:
                         st.warning("결과가 없습니다.")
             except Exception as e:

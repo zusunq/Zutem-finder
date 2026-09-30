@@ -115,6 +115,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Secrets 안전 불러오기
+real_api_key = ""
+correct_password = ""
+try:
+    real_api_key = st.secrets.get("YOUTUBE_API_KEY", "")
+    correct_password = st.secrets.get("MY_PASSWORD", "")
+except Exception:
+    pass
+
 # ----------------------------------------------------
 # 사이드바 메뉴
 # ----------------------------------------------------
@@ -136,9 +145,6 @@ with st.sidebar:
     st.divider()
     
     st.markdown("### 🔑 접속 인증")
-    real_api_key = st.secrets.get("YOUTUBE_API_KEY", "")
-    correct_password = st.secrets.get("MY_PASSWORD", "")
-    
     user_input_pw = st.text_input("비밀번호 입력", type="password", placeholder="비밀번호를 입력하세요")
     
     if user_input_pw == correct_password and correct_password != "":
@@ -312,15 +318,15 @@ elif menu == "🏆 황금 채널 발굴기":
     
     st.markdown("##### 🎯 관심 주제")
     topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
-    selected_topic = st.segmented_control("관심 주제", topics, default="전체", label_visibility="collapsed")
+    selected_topic = st.radio("관심 주제", topics, index=0, horizontal=True, label_visibility="collapsed")
     
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("##### 🎬 영상 타입")
-        video_type = st.segmented_control("영상 타입", ["전체", "쇼츠", "롱폼"], default="쇼츠", label_visibility="collapsed")
+        video_type = st.radio("영상 타입", ["전체", "쇼츠", "롱폼"], index=1, horizontal=True, label_visibility="collapsed")
     with col2:
         st.markdown("##### 👥 구독자 구간")
-        sub_range = st.segmented_control("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], default="전체", label_visibility="collapsed")
+        sub_range = st.radio("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], index=0, horizontal=True, label_visibility="collapsed")
     
     if st.button("🏆 황금 채널 탐색"):
         if not api_key:
@@ -339,85 +345,83 @@ elif menu == "🏆 황금 채널 발굴기":
                     ).execute()
 
                     v_ids = [item["id"]["videoId"] for item in search_res.get("items", [])]
-                    videos_res = youtube.videos().list(part="snippet,statistics", id=",".join(v_ids)).execute()
+                    if v_ids:
+                        videos_res = youtube.videos().list(part="snippet,statistics", id=",".join(v_ids)).execute()
 
-                    st.markdown(f"### 🏆 **[{q_term}]** 분야 발굴 결과")
+                        st.markdown(f"### 🏆 **[{q_term}]** 분야 발굴 결과")
 
-                    cols_per_row = 4
-                    for i in range(0, len(videos_res.get("items", [])), cols_per_row):
-                        cols = st.columns(cols_per_row)
-                        for j in range(cols_per_row):
-                            idx = i + j
-                            if idx < len(videos_res.get("items", [])):
-                                item = videos_res["items"][idx]
-                                snippet = item["snippet"]
-                                stats = item.get("statistics", {})
+                        cols_per_row = 4
+                        for i in range(0, len(videos_res.get("items", [])), cols_per_row):
+                            cols = st.columns(cols_per_row)
+                            for j in range(cols_per_row):
+                                idx = i + j
+                                if idx < len(videos_res.get("items", [])):
+                                    item = videos_res["items"][idx]
+                                    snippet = item["snippet"]
+                                    stats = item.get("statistics", {})
 
-                                views = int(stats.get("viewCount", 0))
-                                view_text = f"{views/10000:.1f}만 회" if views >= 10000 else f"{views:,}회"
+                                    views = int(stats.get("viewCount", 0))
+                                    view_text = f"{views/10000:.1f}만 회" if views >= 10000 else f"{views:,}회"
 
-                                with cols[j]:
-                                    st.markdown(f"""
-                                    <div class="dark-card">
-                                        <a href="https://www.youtube.com/shorts/{item['id']}" target="_blank">
-                                            <img src="{snippet['thumbnails']['high']['url']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
-                                        </a>
-                                        <div class="dark-card-body">
-                                            <div class="dark-card-title">{snippet['title']}</div>
-                                            <div class="dark-card-sub">📺 {snippet['channelTitle']}</div>
-                                            <div class="dark-card-stats">
-                                                <span>👁️조회수 {view_text}</span>
-                                                <span class="badge-ams-dark">AMS 99.9</span>
+                                    with cols[j]:
+                                        st.markdown(f"""
+                                        <div class="dark-card">
+                                            <a href="https://www.youtube.com/shorts/{item['id']}" target="_blank">
+                                                <img src="{snippet['thumbnails']['high']['url']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
+                                            </a>
+                                            <div class="dark-card-body">
+                                                <div class="dark-card-title">{snippet['title']}</div>
+                                                <div class="dark-card-sub">📺 {snippet['channelTitle']}</div>
+                                                <div class="dark-card-stats">
+                                                    <span>👁️조회수 {view_text}</span>
+                                                    <span class="badge-ams-dark">AMS 99.9</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    """, unsafe_allow_html=True)
+                                        """, unsafe_allow_html=True)
+                    else:
+                        st.warning("결과가 없습니다.")
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
 
 
 # ====================================================
-# PAGE 3: 터진 영상 (요청 필터 항목 완벽 반영)
+# PAGE 3: 터진 영상
 # ====================================================
 elif menu == "🔥 터진 영상":
     st.markdown("## 🔥 터진 영상")
     st.caption("최근 바이럴에 성공하여 폭발적인 조회수를 기록한 떡상 영상을 모아서 확인합니다.")
     
-    # 1. 관심 주제 필터
     st.markdown("##### 🎯 관심 주제")
     topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
-    selected_topic = st.segmented_control("관심 주제", topics, default="전체", key="tv_topic", label_visibility="collapsed")
+    selected_topic = st.radio("관심 주제", topics, index=0, key="tv_topic", horizontal=True, label_visibility="collapsed")
     
-    # 2. 영상 타입 & 정렬 기준 (쇼츠, 롱폼, 전체 / 급등순, 조회수순, 최신순)
     col_t1, col_t2 = st.columns(2)
     with col_t1:
         st.markdown("##### 🎬 영상 타입")
-        video_type = st.segmented_control("영상 타입", ["전체", "쇼츠", "롱폼"], default="전체", key="tv_vtype", label_visibility="collapsed")
+        video_type = st.radio("영상 타입", ["전체", "쇼츠", "롱폼"], index=0, key="tv_vtype", horizontal=True, label_visibility="collapsed")
     with col_t2:
         st.markdown("##### 📊 정렬 기준")
-        sort_by = st.segmented_control("정렬 기준", ["급등순", "조회수순", "최신순"], default="급등순", key="tv_sort", label_visibility="collapsed")
+        sort_by = st.radio("정렬 기준", ["급등순", "조회수순", "최신순"], index=0, key="tv_sort", horizontal=True, label_visibility="collapsed")
     
-    # 3. 트렌드 상태 필터 (신규, 상승, 하락, 유지)
     st.markdown("##### 🏷️ 상태 태그 필터")
-    status_filter = st.segmented_control("상태 필터", ["전체", "🔵 신규", "🟢 상승", "🔴 하락", "⚪ 유지"], default="전체", key="tv_status", label_visibility="collapsed")
+    status_filter = st.radio("상태 필터", ["전체", "🔵 신규", "🟢 상승", "🔴 하락", "⚪ 유지"], index=0, key="tv_status", horizontal=True, label_visibility="collapsed")
 
     if st.button("🔥 터진 영상 찾아보기"):
         if not api_key:
-            st.error("⚠️️ 좌측 사이드바 인증을 완료해 주세요.")
+            st.error("⚠️ 좌측 사이드바 인증을 완료해 주세요.")
         else:
             try:
                 youtube = build("youtube", "v3", developerKey=api_key)
                 with st.spinner("🔥 급상승 떡상 영상 수집 중..."):
                     q_term = selected_topic if selected_topic != "전체" else "인기"
                     
-                    # 영상 타입 옵션 매핑
                     v_duration = "any"
                     if video_type == "쇼츠":
                         v_duration = "short"
                     elif video_type == "롱폼":
-                        v_duration = "medium" # 또는 long
+                        v_duration = "medium"
 
-                    # 정렬 옵션 매핑
                     order_param = "viewCount"
                     if sort_by == "최신순":
                         order_param = "date"
@@ -440,7 +444,6 @@ elif menu == "🔥 터진 영상":
                     else:
                         videos_res = youtube.videos().list(part="snippet,statistics", id=",".join(v_ids)).execute()
 
-                        import random
                         statuses = [("🔵 신규", "status-new"), ("🟢 상승", "status-up"), ("🔴 하락", "status-down"), ("⚪ 유지", "status-same")]
 
                         st.markdown(f"### 🔥 **[{q_term}]** 터진 영상 결과")
@@ -458,10 +461,8 @@ elif menu == "🔥 터진 영상":
                                     views = int(stats.get("viewCount", 0))
                                     view_text = f"{views/10000:.1f}만 회" if views >= 10000 else f"{views:,}회"
 
-                                    # 상태 태그 가상 지정 (신규, 상승, 하락, 유지)
                                     status_label, status_class = statuses[idx % len(statuses)]
 
-                                    # 상태 필터링 적용
                                     if status_filter != "전체" and status_filter not in status_label:
                                         continue
 

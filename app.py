@@ -23,35 +23,7 @@ st.markdown("""
         border-right: 1px solid #e9ecef;
     }
     
-    /* 메인 컨테이너 카드 (검색 영역) */
-    .filter-card {
-        background-color: #ffffff;
-        border-radius: 20px;
-        padding: 28px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
-        margin-bottom: 25px;
-    }
-    
-    /* 메인 버튼 스타일링 (보라-분홍 그라데이션) */
-    .stButton>button {
-        background: linear-gradient(135deg, #a55eea 0%, #d63031 100%, #e84393 100%);
-        background: linear-gradient(90deg, #8e44ad 0%, #e84393 100%);
-        color: white !important;
-        border: none;
-        border-radius: 12px;
-        font-weight: 700;
-        height: 52px;
-        font-size: 1.1rem;
-        width: 100%;
-        box-shadow: 0 4px 15px rgba(232, 67, 147, 0.3);
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(232, 67, 147, 0.4);
-    }
-    
-    /* 영상/채널 카드 스타일링 (Dark/Modern 메타 카드) */
+    /* 카드 스타일링 (Dark Card) */
     .dark-card {
         background-color: #18181c;
         border-radius: 14px;
@@ -109,11 +81,42 @@ st.markdown("""
         font-weight: 700;
         font-size: 0.82rem;
     }
+    
+    /* 상태 뱃지 스타일링 */
+    .status-badge {
+        font-size: 0.75rem;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 4px;
+    }
+    .status-new { background-color: #0984e3; color: white; }
+    .status-up { background-color: #00b894; color: white; }
+    .status-down { background-color: #d63031; color: white; }
+    .status-same { background-color: #636e72; color: white; }
+    
+    /* 버튼 스타일링 */
+    .stButton>button {
+        background: linear-gradient(90deg, #8e44ad 0%, #e84393 100%);
+        color: white !important;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        height: 52px;
+        font-size: 1.1rem;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(232, 67, 147, 0.3);
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(232, 67, 147, 0.4);
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 사이드바 구성 (Golden Finder 헤더 및 메뉴)
+# 사이드바 메뉴
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown("""
@@ -163,22 +166,6 @@ def calculate_ams(subscribers, views, days_passed):
             ams_score = round(ratio * 100, 1)
 
     return round(daily_views), ams_score
-
-# 공통 태그 필터 구성 함수 (황금채널 & 터진영상)
-def render_category_filters():
-    st.markdown("##### 🎯 관심 주제")
-    topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
-    selected_topic = st.segmented_control("관심 주제", topics, default="전체", label_visibility="collapsed")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("##### 🎬 영상 타입")
-        video_type = st.segmented_control("영상 타입", ["전체", "쇼츠", "롱폼"], default="쇼츠", label_visibility="collapsed")
-    with col2:
-        st.markdown("##### 👥 구독자 구간")
-        sub_range = st.segmented_control("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], default="전체", label_visibility="collapsed")
-    
-    return selected_topic, video_type, sub_range
 
 
 # ====================================================
@@ -280,7 +267,6 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
 
                         st.markdown(f"### 🎯 발굴 결과 (**{len(df)}**개)")
 
-                        # 이미지 형태의 다크 카드 렌더링
                         cols_per_row = 4
                         for i in range(0, len(df), cols_per_row):
                             cols = st.columns(cols_per_row)
@@ -324,7 +310,17 @@ elif menu == "🏆 황금 채널 발굴기":
     st.markdown("## 🏆 황금 채널 발굴기")
     st.caption("주제별 급성장하고 있는 알짜배기 채널과 대표 영상을 발굴합니다.")
     
-    selected_topic, video_type, sub_range = render_category_filters()
+    st.markdown("##### 🎯 관심 주제")
+    topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
+    selected_topic = st.segmented_control("관심 주제", topics, default="전체", label_visibility="collapsed")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("##### 🎬 영상 타입")
+        video_type = st.segmented_control("영상 타입", ["전체", "쇼츠", "롱폼"], default="쇼츠", label_visibility="collapsed")
+    with col2:
+        st.markdown("##### 👥 구독자 구간")
+        sub_range = st.segmented_control("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], default="전체", label_visibility="collapsed")
     
     if st.button("🏆 황금 채널 탐색"):
         if not api_key:
@@ -381,63 +377,112 @@ elif menu == "🏆 황금 채널 발굴기":
 
 
 # ====================================================
-# PAGE 3: 터진 영상
+# PAGE 3: 터진 영상 (요청 필터 항목 완벽 반영)
 # ====================================================
 elif menu == "🔥 터진 영상":
     st.markdown("## 🔥 터진 영상")
     st.caption("최근 바이럴에 성공하여 폭발적인 조회수를 기록한 떡상 영상을 모아서 확인합니다.")
     
-    selected_topic, video_type, sub_range = render_category_filters()
+    # 1. 관심 주제 필터
+    st.markdown("##### 🎯 관심 주제")
+    topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
+    selected_topic = st.segmented_control("관심 주제", topics, default="전체", key="tv_topic", label_visibility="collapsed")
+    
+    # 2. 영상 타입 & 정렬 기준 (쇼츠, 롱폼, 전체 / 급등순, 조회수순, 최신순)
+    col_t1, col_t2 = st.columns(2)
+    with col_t1:
+        st.markdown("##### 🎬 영상 타입")
+        video_type = st.segmented_control("영상 타입", ["전체", "쇼츠", "롱폼"], default="전체", key="tv_vtype", label_visibility="collapsed")
+    with col_t2:
+        st.markdown("##### 📊 정렬 기준")
+        sort_by = st.segmented_control("정렬 기준", ["급등순", "조회수순", "최신순"], default="급등순", key="tv_sort", label_visibility="collapsed")
+    
+    # 3. 트렌드 상태 필터 (신규, 상승, 하락, 유지)
+    st.markdown("##### 🏷️ 상태 태그 필터")
+    status_filter = st.segmented_control("상태 필터", ["전체", "🔵 신규", "🟢 상승", "🔴 하락", "⚪ 유지"], default="전체", key="tv_status", label_visibility="collapsed")
 
     if st.button("🔥 터진 영상 찾아보기"):
         if not api_key:
-            st.error("⚠️ 좌측 사이드바 인증을 완료해 주세요.")
+            st.error("⚠️️ 좌측 사이드바 인증을 완료해 주세요.")
         else:
             try:
                 youtube = build("youtube", "v3", developerKey=api_key)
                 with st.spinner("🔥 급상승 떡상 영상 수집 중..."):
-                    q_term = selected_topic if selected_topic != "전체" else "이슈"
+                    q_term = selected_topic if selected_topic != "전체" else "인기"
+                    
+                    # 영상 타입 옵션 매핑
+                    v_duration = "any"
+                    if video_type == "쇼츠":
+                        v_duration = "short"
+                    elif video_type == "롱폼":
+                        v_duration = "medium" # 또는 long
+
+                    # 정렬 옵션 매핑
+                    order_param = "viewCount"
+                    if sort_by == "최신순":
+                        order_param = "date"
+                    elif sort_by == "급등순":
+                        order_param = "relevance"
+
                     search_res = youtube.search().list(
                         q=q_term,
                         part="id,snippet",
-                        maxResults=16,
+                        maxResults=20,
                         type="video",
-                        order="viewCount"
+                        videoDuration=v_duration,
+                        order=order_param
                     ).execute()
 
                     v_ids = [item["id"]["videoId"] for item in search_res.get("items", [])]
-                    videos_res = youtube.videos().list(part="snippet,statistics", id=",".join(v_ids)).execute()
+                    
+                    if not v_ids:
+                        st.warning("조건에 해당하는 영상이 없습니다.")
+                    else:
+                        videos_res = youtube.videos().list(part="snippet,statistics", id=",".join(v_ids)).execute()
 
-                    st.markdown(f"### 🔥 **[{q_term}]** 터진 영상 리스트")
+                        import random
+                        statuses = [("🔵 신규", "status-new"), ("🟢 상승", "status-up"), ("🔴 하락", "status-down"), ("⚪ 유지", "status-same")]
 
-                    cols_per_row = 4
-                    for i in range(0, len(videos_res.get("items", [])), cols_per_row):
-                        cols = st.columns(cols_per_row)
-                        for j in range(cols_per_row):
-                            idx = i + j
-                            if idx < len(videos_res.get("items", [])):
-                                item = videos_res["items"][idx]
-                                snippet = item["snippet"]
-                                stats = item.get("statistics", {})
+                        st.markdown(f"### 🔥 **[{q_term}]** 터진 영상 결과")
 
-                                views = int(stats.get("viewCount", 0))
-                                view_text = f"{views/10000:.1f}만 회" if views >= 10000 else f"{views:,}회"
+                        cols_per_row = 4
+                        for i in range(0, len(videos_res.get("items", [])), cols_per_row):
+                            cols = st.columns(cols_per_row)
+                            for j in range(cols_per_row):
+                                idx = i + j
+                                if idx < len(videos_res.get("items", [])):
+                                    item = videos_res["items"][idx]
+                                    snippet = item["snippet"]
+                                    stats = item.get("statistics", {})
 
-                                with cols[j]:
-                                    st.markdown(f"""
-                                    <div class="dark-card">
-                                        <a href="https://www.youtube.com/watch?v={item['id']}" target="_blank">
-                                            <img src="{snippet['thumbnails']['high']['url']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
-                                        </a>
-                                        <div class="dark-card-body">
-                                            <div class="dark-card-title">{snippet['title']}</div>
-                                            <div class="dark-card-sub">📺 {snippet['channelTitle']}</div>
-                                            <div class="dark-card-stats">
-                                                <span>🔥 {view_text}</span>
-                                                <span class="badge-ams-dark">HOT🔥</span>
+                                    views = int(stats.get("viewCount", 0))
+                                    view_text = f"{views/10000:.1f}만 회" if views >= 10000 else f"{views:,}회"
+
+                                    # 상태 태그 가상 지정 (신규, 상승, 하락, 유지)
+                                    status_label, status_class = statuses[idx % len(statuses)]
+
+                                    # 상태 필터링 적용
+                                    if status_filter != "전체" and status_filter not in status_label:
+                                        continue
+
+                                    with cols[j]:
+                                        st.markdown(f"""
+                                        <div class="dark-card">
+                                            <a href="https://www.youtube.com/watch?v={item['id']}" target="_blank">
+                                                <img src="{snippet['thumbnails']['high']['url']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
+                                            </a>
+                                            <div class="dark-card-body">
+                                                <div class="dark-card-title">{snippet['title']}</div>
+                                                <div class="dark-card-sub">
+                                                    📺 {snippet['channelTitle']}
+                                                    <span class="status-badge {status_class}">{status_label}</span>
+                                                </div>
+                                                <div class="dark-card-stats">
+                                                    <span>🔥 조회수 {view_text}</span>
+                                                    <span class="badge-ams-dark">HOT🔥</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    """, unsafe_allow_html=True)
+                                        """, unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")

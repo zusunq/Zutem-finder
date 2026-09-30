@@ -22,53 +22,7 @@ st.markdown("""
         background-color: #ffffff;
         border-right: 1px solid #e9ecef;
     }
-
-    /* ----------------------------------------------------------------- */
-    /* 🌟 Golden Finder 스타일: st.radio -> 태그/알약(Pill) 스타일 커스텀 */
-    /* ----------------------------------------------------------------- */
-    div[data-testid="stRadio"] > div {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-    }
-
-    /* 라디오 버튼 동그라미 숨기기 및 기본 버튼 형태 적용 */
-    div[data-testid="stRadio"] label {
-        background-color: #ffffff;
-        color: #4b5563;
-        border: 1px solid #e5e7eb;
-        border-radius: 20px !important;
-        padding: 6px 16px !important;
-        font-size: 0.88rem !important;
-        font-weight: 600 !important;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-right: 0px !important;
-    }
-
-    /* 라디오 버튼 원형 선택 표식 완전 제거 */
-    div[data-testid="stRadio"] label > div:first-child {
-        display: none !important;
-    }
-
-    /* Hover 효과 */
-    div[data-testid="stRadio"] label:hover {
-        background-color: #f3f4f6;
-        border-color: #d1d5db;
-        color: #111827;
-    }
-
-    /* 선택된 항목 (Checked) 스타일링 */
-    div[data-testid="stRadio"] label:has(input:checked) {
-        background-color: #4f46e5 !important;
-        color: #ffffff !important;
-        border-color: #4f46e5 !important;
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
-    }
-    /* ----------------------------------------------------------------- */
-
+    
     /* 카드 스타일링 (Dark Card) */
     .dark-card {
         background-color: #18181c;
@@ -141,23 +95,22 @@ st.markdown("""
     .status-down { background-color: #d63031; color: white; }
     .status-same { background-color: #636e72; color: white; }
     
-    /* 실행 버튼 스타일링 */
+    /* 버튼 스타일링 */
     .stButton>button {
-        background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
+        background: linear-gradient(90deg, #8e44ad 0%, #e84393 100%);
         color: white !important;
         border: none;
         border-radius: 12px;
         font-weight: 700;
-        height: 50px;
-        font-size: 1.05rem;
+        height: 52px;
+        font-size: 1.1rem;
         width: 100%;
-        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.25);
+        box-shadow: 0 4px 15px rgba(232, 67, 147, 0.3);
         transition: all 0.3s ease;
-        margin-top: 10px;
     }
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        box-shadow: 0 6px 20px rgba(232, 67, 147, 0.4);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -231,15 +184,17 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
     with st.container():
         keyword = st.text_input("검색어", placeholder="검색어를 입력하세요 (예: 요리, 운동, 재테크, 꿀템...)", label_visibility="collapsed")
         
-        col_f1, col_f2 = st.columns(2)
+        col_f1, col_f2, col_f3, col_f4 = st.columns(4)
         with col_f1:
-            st.markdown("##### 📅 업로드 일자")
-            date_filter = st.radio("업로드 일자", ["전체", "최근 24시간", "최근 1주일", "최근 1개월"], index=2, horizontal=True, label_visibility="collapsed", key="p1_date")
+            date_filter = st.selectbox("📅 업로드 일자", ["최근 1주일", "최근 24시간", "최근 1개월", "최근 1년", "전체"])
         with col_f2:
-            st.markdown("##### 🎯 정렬 기준")
-            sort_option = st.radio("정렬 기준", ["AMS 지수 높은순", "조회수 높은순", "일일 조회수 높은순"], index=0, horizontal=True, label_visibility="collapsed", key="p1_sort")
+            max_subs_option = st.selectbox("👥 최대 구독자", ["제한 없음", "1만 명 이하", "5만 명 이하", "10만 명 이하", "50만 명 이하"])
+        with col_f3:
+            view_range_option = st.selectbox("👁️ 조회수 범위", ["전체", "1만 ~ 5만회", "5만 ~ 10만회", "10만 ~ 50만회", "50만회 이상"])
+        with col_f4:
+            sort_option = st.selectbox("🎯 정렬", ["AMS 지수 높은순", "조회수 높은순", "일일 조회수 높은순", "최신순"])
 
-        search_clicked = st.button("🚀 조회수 폭발 쇼츠 발굴 시작")
+        search_clicked = st.button("🚀 떡상 쇼츠 발굴 시작")
 
     if search_clicked and keyword:
         if not api_key:
@@ -315,8 +270,6 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
                             df = df.sort_values(by="AMS지수", ascending=False)
                         elif sort_option == "조회수 높은순":
                             df = df.sort_values(by="조회수", ascending=False)
-                        elif sort_option == "일일 조회수 높은순":
-                            df = df.sort_values(by="일일조회수", ascending=False)
 
                         st.markdown(f"### 🎯 발굴 결과 (**{len(df)}**개)")
 
@@ -361,24 +314,21 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
 # ====================================================
 elif menu == "🏆 황금 채널 발굴기":
     st.markdown("## 🏆 황금 채널 발굴기")
-    st.caption("카테고리별 수익 채널 분석 및 급성장 알짜배기 채널을 발굴합니다.")
+    st.caption("주제별 급성장하고 있는 알짜배기 채널과 대표 영상을 발굴합니다.")
     
     st.markdown("##### 🎯 관심 주제")
     topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
     selected_topic = st.radio("관심 주제", topics, index=0, horizontal=True, label_visibility="collapsed", key="gc_topic")
     
-    st.write("")
-    st.markdown("##### 🎬 영상 타입")
-    video_type = st.radio("영상 타입", ["전체", "쇼츠", "롱폼"], index=1, horizontal=True, label_visibility="collapsed", key="gc_vtype")
-    
-    st.write("")
-    st.markdown("##### 👥 구독자 구간")
-    sub_range = st.radio("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sub")
-    
-    st.write("")
-    col_g1, col_g2 = st.columns([3, 1])
+    col_g1, col_g2, col_g3 = st.columns([1.5, 2, 1.5])
+    with col_g1:
+        st.markdown("##### 🎬 영상 타입")
+        video_type = st.radio("영상 타입", ["전체", "쇼츠", "롱폼"], index=1, horizontal=True, label_visibility="collapsed", key="gc_vtype")
     with col_g2:
-        st.markdown("<div style='text-align: right;'><b>📊 정렬 기준</b></div>", unsafe_allow_html=True)
+        st.markdown("##### 👥 구독자 구간")
+        sub_range = st.radio("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sub")
+    with col_g3:
+        st.markdown("##### 📊 정렬 기준")
         sort_gc = st.radio("정렬 기준", ["조회수 높은 순", "구독자 많은 순"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sort")
     
     if st.button("🏆 황금 채널 탐색"):
@@ -417,6 +367,7 @@ elif menu == "🏆 황금 채널 발굴기":
                             for ch in channels_res.get("items", [])
                         }
 
+                        # 데이터 구조화
                         items_list = []
                         for item in videos_res.get("items", []):
                             snippet = item["snippet"]
@@ -424,6 +375,7 @@ elif menu == "🏆 황금 채널 발굴기":
                             v_views = int(stats.get("viewCount", 0))
                             ch_subs = channel_subs_map.get(snippet["channelId"], 0)
 
+                            # 구독자 구간 필터링
                             if sub_range == "0~1만 명 (급성장)" and ch_subs > 10000:
                                 continue
                             elif sub_range == "1만~5만 명" and not (10000 <= ch_subs <= 50000):
@@ -440,6 +392,7 @@ elif menu == "🏆 황금 채널 발굴기":
                                 "thumbnail": snippet["thumbnails"]["high"]["url"]
                             })
 
+                        # 정렬 적용
                         if sort_gc == "조회수 높은 순":
                             items_list = sorted(items_list, key=lambda x: x["views"], reverse=True)
                         elif sort_gc == "구독자 많은 순":
@@ -493,7 +446,6 @@ elif menu == "🔥 터진 영상":
     topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
     selected_topic = st.radio("관심 주제", topics, index=0, key="tv_topic", horizontal=True, label_visibility="collapsed")
     
-    st.write("")
     col_t1, col_t2 = st.columns(2)
     with col_t1:
         st.markdown("##### 🎬 영상 타입")
@@ -502,7 +454,6 @@ elif menu == "🔥 터진 영상":
         st.markdown("##### 📊 정렬 기준")
         sort_by = st.radio("정렬 기준", ["급등순", "조회수순", "최신순"], index=0, key="tv_sort", horizontal=True, label_visibility="collapsed")
     
-    st.write("")
     st.markdown("##### 🏷️ 상태 태그 필터")
     status_filter = st.radio("상태 필터", ["전체", "🔵 신규", "🟢 상승", "🔴 하락", "⚪ 유지"], index=0, key="tv_status", horizontal=True, label_visibility="collapsed")
 
@@ -542,6 +493,7 @@ elif menu == "🔥 터진 영상":
                         st.warning("조건에 해당하는 영상이 없습니다.")
                     else:
                         videos_res = youtube.videos().list(part="snippet,statistics", id=",".join(v_ids)).execute()
+
                         statuses = [("🔵 신규", "status-new"), ("🟢 상승", "status-up"), ("🔴 하락", "status-down"), ("⚪ 유지", "status-same")]
 
                         st.markdown(f"### 🔥 **[{q_term}]** 터진 영상 결과")

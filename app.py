@@ -179,7 +179,7 @@ def calculate_ams(subscribers, views, days_passed):
 # ====================================================
 if menu == "🔍 조회수 폭발 쇼츠 찾기":
     st.markdown("## 🔍 조회수 폭발 쇼츠 찾기")
-    st.caption("조건에 부합하는 알고리즘 떡상 쇼츠를 신속하게 검색합니다.")
+    st.caption("조건에 부합하는 알고리즘 조회수 폭발 쇼츠를 신속하게 검색합니다.")
     
     with st.container():
         keyword = st.text_input("검색어", placeholder="검색어를 입력하세요 (예: 요리, 운동, 재테크, 꿀템...)", label_visibility="collapsed")
@@ -194,7 +194,7 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
         with col_f4:
             sort_option = st.selectbox("🎯 정렬", ["AMS 지수 높은순", "조회수 높은순", "일일 조회수 높은순", "최신순"])
 
-        search_clicked = st.button("🚀 떡상 쇼츠 발굴 시작")
+        search_clicked = st.button("🚀 조회수 폭발 쇼츠 발굴 시작")
 
     if search_clicked and keyword:
         if not api_key:
@@ -440,7 +440,7 @@ elif menu == "🏆 황금 채널 발굴기":
 # ====================================================
 elif menu == "🔥 터진 영상":
     st.markdown("## 🔥 터진 영상")
-    st.caption("최근 바이럴에 성공하여 폭발적인 조회수를 기록한 떡상 영상을 모아서 확인합니다.")
+    st.caption("최근 바이럴에 성공하여 폭발적인 조회수를 기록한 조회수 폭발 영상을 모아서 확인합니다.")
     
     st.markdown("##### 🎯 관심 주제")
     topics = ["전체", "건강/의학", "영화/드라마 리뷰", "연예인/이슈", "재테크/부동산", "동기부여/명언", "AI/IT 꿀팁", "라이프스타일/Vlog", "반려동물", "블랙박스/사건사고", "뷰티", "요리", "여행"]
@@ -463,7 +463,7 @@ elif menu == "🔥 터진 영상":
         else:
             try:
                 youtube = build("youtube", "v3", developerKey=api_key)
-                with st.spinner("🔥 급상승 떡상 영상 수집 중..."):
+                with st.spinner("🔥 급상승 조회수 폭발 영상 수집 중..."):
                     q_term = selected_topic if selected_topic != "전체" else "인기"
                     
                     v_duration = "any"

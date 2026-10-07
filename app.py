@@ -175,7 +175,7 @@ def calculate_ams(subscribers, views, days_passed):
 
 
 # ====================================================
-# PAGE 1: 조회수 폭발 쇼츠 찾기 (검색 일관성 & 모수 고정 보완본)
+# PAGE 1: 조회수 폭발 쇼츠 찾기 (API Quota 절감 안전 버전)
 # ====================================================
 if menu == "🔍 조회수 폭발 쇼츠 찾기":
     st.markdown("## 🔍 조회수 폭발 쇼츠 찾기")
@@ -202,7 +202,7 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
         else:
             try:
                 youtube = build("youtube", "v3", developerKey=api_key)
-                with st.spinner("🚀 유튜브에서 일관된 고품질 쇼츠 데이터를 분석 중입니다..."):
+                with st.spinner("🚀 유튜브에서 쇼츠 데이터를 검색 중입니다..."):
                     now_dt = datetime.now(timezone.utc)
                     published_after = None
                     
@@ -215,58 +215,35 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
                     elif date_filter == "최근 1년":
                         published_after = (now_dt - timedelta(days=365)).isoformat()
 
-                    raw_video_ids = []
+                    # 1. 할당량 절감을 위해 search().list 단 1회만 호출 (100pt 소모)
+                    search_kwargs = {
+                        "q": keyword,
+                        "part": "id,snippet",
+                        "maxResults": 50,
+                        "type": "video",
+                        "videoDuration": "short",
+                        "order": "viewCount" # 가장 관련성과 조회수가 높은 고정 정렬
+                    }
+                    if published_after:
+                        search_kwargs["publishedAfter"] = published_after
 
-                    # 조회수 기준(viewCount) 및 연관성 기준(relevance) 2가지 정렬 방식으로 명확히 수집
-                    order_list = ["viewCount", "relevance"]
+                    search_response = youtube.search().list(**search_kwargs).execute()
+                    items = search_response.get("items", [])
                     
-                    for ord_type in order_list:
-                        search_kwargs = {
-                            "q": keyword,
-                            "part": "id,snippet",
-                            "maxResults": 50,
-                            "type": "video",
-                            "videoDuration": "short",
-                            "order": ord_type  # 고정 정렬 파라미터 추가하여 무작위 변동 방지
-                        }
-                        if published_after:
-                            search_kwargs["publishedAfter"] = published_after
-
-                        next_page_token = None
-                        # 정렬 기준당 3페이지(150개)씩 총 300개 수집
-                        for _ in range(3):
-                            if next_page_token:
-                                search_kwargs["pageToken"] = next_page_token
-                            
-                            res = youtube.search().list(**search_kwargs).execute()
-                            items = res.get("items", [])
-                            for item in items:
-                                if "videoId" in item.get("id", {}):
-                                    raw_video_ids.append(item["id"]["videoId"])
-                            
-                            next_page_token = res.get("nextPageToken")
-                            if not next_page_token:
-                                break
-
-                    # 중복 ID 완벽 제거 (순서 고정)
-                    video_ids = list(dict.fromkeys(raw_video_ids))
+                    video_ids = [item["id"]["videoId"] for item in items if "videoId" in item.get("id", {})]
 
                     if not video_ids:
                         st.warning("검색 결과가 없습니다.")
                     else:
-                        # 비디오 상세 데이터 50개씩 청크 수집
-                        videos_items = []
-                        for i in range(0, len(video_ids), 50):
-                            chunk_ids = video_ids[i:i+50]
-                            res = youtube.videos().list(part="snippet,statistics", id=",".join(chunk_ids)).execute()
-                            videos_items.extend(res.get("items", []))
+                        # 2. 비디오 상세 데이터 수집 (비용 1pt)
+                        res = youtube.videos().list(part="snippet,statistics", id=",".join(video_ids)).execute()
+                        videos_items = res.get("items", [])
 
-                        # 채널 정보 수집
+                        # 3. 채널 구독자 정보 수집 (비용 1pt)
                         channel_ids = list(set([item["snippet"]["channelId"] for item in videos_items if "snippet" in item]))
                         channel_subs_map = {}
-                        for i in range(0, len(channel_ids), 50):
-                            chunk_ch_ids = channel_ids[i:i+50]
-                            channels_response = youtube.channels().list(part="statistics", id=",".join(chunk_ch_ids)).execute()
+                        if channel_ids:
+                            channels_response = youtube.channels().list(part="statistics", id=",".join(channel_ids[:50])).execute()
                             for ch in channels_response.get("items", []):
                                 is_hidden = ch.get("statistics", {}).get("hiddenSubscriberCount", False)
                                 channel_subs_map[ch["id"]] = 0 if is_hidden else int(ch.get("statistics", {}).get("subscriberCount", 0))
@@ -298,11 +275,9 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
                                 "썸네일": snippet.get("thumbnails", {}).get("high", {}).get("url", "")
                             })
 
-                        # DataFrame 생성 및 비디오 ID 기준 중복 제거
                         df = pd.DataFrame(data_list)
-                        df = df.drop_duplicates(subset=["video_id"]).reset_index(drop=True)
 
-                        # 필터 1: 최대 구독자 수
+                        # 필터링 1: 최대 구독자 수
                         if max_subs_option == "1만 명 이하":
                             df = df[df["구독자수"] <= 10000]
                         elif max_subs_option == "5만 명 이하":
@@ -312,7 +287,7 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
                         elif max_subs_option == "50만 명 이하":
                             df = df[df["구독자수"] <= 500000]
 
-                        # 필터 2: 조회수 범위
+                        # 필터링 2: 조회수 범위
                         if view_range_option == "1만 ~ 5만회":
                             df = df[(df["조회수"] >= 10000) & (df["조회수"] <= 50000)]
                         elif view_range_option == "5만 ~ 10만회":
@@ -324,7 +299,7 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
                         elif view_range_option == "100만회 이상":
                             df = df[df["조회수"] >= 1000000]
 
-                        # 필터 3: 정렬 처리
+                        # 필터링 3: 정렬 처리
                         if sort_option == "AMS 지수 높은순":
                             df = df.sort_values(by="AMS지수", ascending=False)
                         elif sort_option == "조회수 높은순":

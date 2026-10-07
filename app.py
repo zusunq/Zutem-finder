@@ -175,7 +175,7 @@ def calculate_ams(subscribers, views, days_passed):
 
 
 # ====================================================
-# PAGE 1: 조회수 폭발 쇼츠 찾기
+# PAGE 1: 조회수 폭발 쇼츠 찾기 (수정본)
 # ====================================================
 if menu == "🔍 조회수 폭발 쇼츠 찾기":
     st.markdown("## 🔍 조회수 폭발 쇼츠 찾기")
@@ -190,7 +190,8 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
         with col_f2:
             max_subs_option = st.selectbox("👥 최대 구독자", ["제한 없음", "1만 명 이하", "5만 명 이하", "10만 명 이하", "50만 명 이하"])
         with col_f3:
-            view_range_option = st.selectbox("👁️ 조회수 범위", ["전체", "1만 ~ 5만회", "5만 ~ 10만회", "10만 ~ 50만회", "50만회 이상"])
+            # 오른쪽 이미지 옵션 반영
+            view_range_option = st.selectbox("👁️ 조회수 범위", ["전체", "1만 ~ 5만회", "5만 ~ 10만회", "10만 ~ 30만회", "30만 ~ 100만회", "100만회 이상"])
         with col_f4:
             sort_option = st.selectbox("🎯 정렬", ["AMS 지수 높은순", "조회수 높은순", "일일 조회수 높은순", "최신순"])
 
@@ -202,44 +203,69 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
         else:
             try:
                 youtube = build("youtube", "v3", developerKey=api_key)
-                with st.spinner("🚀 조건에 맞는 쇼츠를 분석 중입니다..."):
+                with st.spinner("🚀 조건에 맞는 쇼츠 100개를 분석 중입니다..."):
                     now_dt = datetime.now(timezone.utc)
                     published_after = None
+                    
                     if date_filter == "최근 24시간":
                         published_after = (now_dt - timedelta(days=1)).isoformat()
                     elif date_filter == "최근 1주일":
                         published_after = (now_dt - timedelta(days=7)).isoformat()
                     elif date_filter == "최근 1개월":
                         published_after = (now_dt - timedelta(days=30)).isoformat()
+                    elif date_filter == "최근 1년":
+                        published_after = (now_dt - timedelta(days=365)).isoformat()
 
                     search_kwargs = {
                         "q": keyword,
                         "part": "id,snippet",
-                        "maxResults": 100,
+                        "maxResults": 50,
                         "type": "video",
                         "videoDuration": "short"
                     }
                     if published_after:
                         search_kwargs["publishedAfter"] = published_after
 
-                    search_response = youtube.search().list(**search_kwargs).execute()
-                    video_ids = [item["id"]["videoId"] for item in search_response.get("items", [])]
+                    # 100개 검색을 위한 2회 루프 (페이지네이션)
+                    video_ids = []
+                    next_page_token = None
+                    
+                    for _ in range(2):
+                        if next_page_token:
+                            search_kwargs["pageToken"] = next_page_token
+                        
+                        search_response = youtube.search().list(**search_kwargs).execute()
+                        items = search_response.get("items", [])
+                        
+                        for item in items:
+                            video_ids.append(item["id"]["videoId"])
+                            
+                        next_page_token = search_response.get("nextPageToken")
+                        if not next_page_token:
+                            break
 
                     if not video_ids:
                         st.warning("검색 결과가 없습니다.")
                     else:
-                        videos_response = youtube.videos().list(part="snippet,statistics", id=",".join(video_ids)).execute()
-                        channel_ids = list(set([item["snippet"]["channelId"] for item in videos_response["items"]]))
-                        channels_response = youtube.channels().list(part="statistics", id=",".join(channel_ids)).execute()
+                        # 50개씩 나눠서 상세 정보 수집 (API limitation 방지)
+                        videos_items = []
+                        for i in range(0, len(video_ids), 50):
+                            chunk_ids = video_ids[i:i+50]
+                            res = youtube.videos().list(part="snippet,statistics", id=",".join(chunk_ids)).execute()
+                            videos_items.extend(res.get("items", []))
 
-                        channel_subs_map = {
-                            ch["id"]: (0 if ch.get("statistics", {}).get("hiddenSubscriberCount", False) 
-                                       else int(ch.get("statistics", {}).get("subscriberCount", 0)))
-                            for ch in channels_response.get("items", [])
-                        }
+                        channel_ids = list(set([item["snippet"]["channelId"] for item in videos_items]))
+                        
+                        channel_subs_map = {}
+                        for i in range(0, len(channel_ids), 50):
+                            chunk_ch_ids = channel_ids[i:i+50]
+                            channels_response = youtube.channels().list(part="statistics", id=",".join(chunk_ch_ids)).execute()
+                            for ch in channels_response.get("items", []):
+                                is_hidden = ch.get("statistics", {}).get("hiddenSubscriberCount", False)
+                                channel_subs_map[ch["id"]] = 0 if is_hidden else int(ch.get("statistics", {}).get("subscriberCount", 0))
 
                         data_list = []
-                        for item in videos_response.get("items", []):
+                        for item in videos_items:
                             v_id = item["id"]
                             snippet = item["snippet"]
                             stats = item.get("statistics", {})
@@ -266,45 +292,76 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
                             })
 
                         df = pd.DataFrame(data_list)
+
+                        # 최대 구독자 수 필터
+                        if max_subs_option == "1만 명 이하":
+                            df = df[df["구독자수"] <= 10000]
+                        elif max_subs_option == "5만 명 이하":
+                            df = df[df["구독자수"] <= 50000]
+                        elif max_subs_option == "10만 명 이하":
+                            df = df[df["구독자수"] <= 100000]
+                        elif max_subs_option == "50만 명 이하":
+                            df = df[df["구독자수"] <= 500000]
+
+                        # 조회수 범위 필터 (요청 이미지 기반 수정)
+                        if view_range_option == "1만 ~ 5만회":
+                            df = df[(df["조회수"] >= 10000) & (df["조회수"] <= 50000)]
+                        elif view_range_option == "5만 ~ 10만회":
+                            df = df[(df["조회수"] >= 50000) & (df["조회수"] <= 100000)]
+                        elif view_range_option == "10만 ~ 30만회":
+                            df = df[(df["조회수"] >= 100000) & (df["조회수"] <= 300000)]
+                        elif view_range_option == "30만 ~ 100만회":
+                            df = df[(df["조회수"] >= 300000) & (df["조회수"] <= 1000000)]
+                        elif view_range_option == "100만회 이상":
+                            df = df[df["조회수"] >= 1000000]
+
+                        # 정렬 로직
                         if sort_option == "AMS 지수 높은순":
                             df = df.sort_values(by="AMS지수", ascending=False)
                         elif sort_option == "조회수 높은순":
                             df = df.sort_values(by="조회수", ascending=False)
+                        elif sort_option == "일일 조회수 높은순":
+                            df = df.sort_values(by="일일조회수", ascending=False)
+                        elif sort_option == "최신순":
+                            df = df.sort_values(by="게시일(전)", ascending=True)
 
-                        st.markdown(f"### 🎯 발굴 결과 (**{len(df)}**개)")
+                        if df.empty:
+                            st.warning("선택한 상세 조건에 부합하는 쇼츠 결과가 없습니다.")
+                        else:
+                            st.markdown(f"### 🎯 발굴 결과 (**{len(df)}**개)")
 
-                        cols_per_row = 4
-                        for i in range(0, len(df), cols_per_row):
-                            cols = st.columns(cols_per_row)
-                            for j in range(cols_per_row):
-                                idx = i + j
-                                if idx < len(df):
-                                    row = df.iloc[idx]
-                                    sub_text = f"{row['구독자수']/10000:.1f}만 명" if row['구독자수'] >= 10000 else f"{row['구독자수']:,}명"
-                                    view_text = f"{row['조회수']/10000:.1f}만 회" if row['조회수'] >= 10000 else f"{row['조회수']:,}회"
-                                    daily_text = f"{row['일일조회수']/10000:.1f}만 회/일" if row['일일조회수'] >= 10000 else f"{row['일일조회수']:,}회/일"
+                            cols_per_row = 4
+                            for i in range(0, len(df), cols_per_row):
+                                cols = st.columns(cols_per_row)
+                                for j in range(cols_per_row):
+                                    idx = i + j
+                                    if idx < len(df):
+                                        row = df.iloc[idx]
+                                        sub_text = f"{row['구독자수']/10000:.1f}만 명" if row['구독자수'] >= 10000 else f"{row['구독자수']:,}명"
+                                        view_text = f"{row['조회수']/10000:.1f}만 회" if row['조회수'] >= 10000 else f"{row['조회수']:,}회"
+                                        daily_text = f"{row['일일조회수']/10000:.1f}만 회/일" if row['일일조회수'] >= 10000 else f"{row['일일조회수']:,}회/일"
 
-                                    with cols[j]:
-                                        st.markdown(f"""
-                                        <div class="dark-card">
-                                            <a href="{row['URL']}" target="_blank">
-                                                <img src="{row['썸네일']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
-                                            </a>
-                                            <div class="dark-card-body">
-                                                <div class="dark-card-title">{row['제목']}</div>
-                                                <div class="dark-card-sub">📺 {row['채널명']}</div>
-                                                <div class="dark-card-stats">
-                                                    <span>👤 {sub_text}</span>
-                                                    <span>👁️ {view_text}</span>
-                                                    <span>📅 {row['게시일(전)']}일 전</span>
-                                                </div>
-                                                <div class="dark-card-stats" style="margin-top: 6px;">
-                                                    <span class="badge-daily">📈 {daily_text}</span>
-                                                    <span class="badge-ams-dark">AMS {row['AMS지수']}</span>
+                                        with cols[j]:
+                                            st.markdown(f"""
+                                            <div class="dark-card">
+                                                <a href="{row['URL']}" target="_blank">
+                                                    <img src="{row['썸네일']}" style="width:100%; aspect-ratio: 9/16; object-fit: cover;">
+                                                </a>
+                                                <div class="dark-card-body">
+                                                    <div class="dark-card-title">{row['제목']}</div>
+                                                    <div class="dark-card-sub">📺 {row['채널명']}</div>
+                                                    <div class="dark-card-stats">
+                                                        <span>👤 {sub_text}</span>
+                                                        <span>👁️ {view_text}</span>
+                                                        <span>📅 {row['게시일(전)']}일 전</span>
+                                                    </div>
+                                                    <div class="dark-card-stats" style="margin-top: 6px;">
+                                                        <span class="badge-daily">📈 {daily_text}</span>
+                                                        <span class="badge-ams-dark">AMS {row['AMS지수']}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        """, unsafe_allow_html=True)
+                                            """, unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
 

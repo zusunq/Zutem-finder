@@ -326,7 +326,7 @@ elif menu == "🏆 황금 채널 발굴기":
         video_type = st.radio("영상 타입", ["전체", "쇼츠", "롱폼"], index=1, horizontal=True, label_visibility="collapsed", key="gc_vtype")
     with col_g2:
         st.markdown("##### 👥 구독자 구간")
-        sub_range = st.radio("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~3만 명", "3만~10만 명"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sub")
+        sub_range = st.radio("구독자 구간", ["전체", "0~1만 명 (급성장)", "1만~5만 명", "5만~10만 명"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sub")
     with col_g3:
         st.markdown("##### 📊 정렬 기준")
         sort_gc = st.radio("정렬 기준", ["조회수 높은 순", "구독자 많은 순"], index=0, horizontal=True, label_visibility="collapsed", key="gc_sort")
@@ -378,9 +378,9 @@ elif menu == "🏆 황금 채널 발굴기":
                             # 구독자 구간 필터링
                             if sub_range == "0~1만 명 (급성장)" and ch_subs > 10000:
                                 continue
-                            elif sub_range == "1만~3만 명" and not (10000 <= ch_subs <= 30000):
+                            elif sub_range == "1만~5만 명" and not (10000 <= ch_subs <= 50000):
                                 continue
-                            elif sub_range == "3만~10만 명" and not (30000 <= ch_subs <= 100000):
+                            elif sub_range == "5만~10만 명" and not (50000 <= ch_subs <= 100000):
                                 continue
 
                             items_list.append({

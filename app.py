@@ -215,7 +215,7 @@ if menu == "🔍 조회수 폭발 쇼츠 찾기":
                     search_kwargs = {
                         "q": keyword,
                         "part": "id,snippet",
-                        "maxResults": 40,
+                        "maxResults": 100,
                         "type": "video",
                         "videoDuration": "short"
                     }
